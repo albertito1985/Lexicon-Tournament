@@ -12,7 +12,7 @@ using Tournament.Data.Data;
 namespace Turnament.Data.Migrations
 {
     [DbContext(typeof(TournamentContext))]
-    [Migration("20250618115635_init")]
+    [Migration("20250618124957_init")]
     partial class init
     {
         /// <inheritdoc />
@@ -64,7 +64,7 @@ namespace Turnament.Data.Migrations
                     b.Property<DateTime>("StartDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("Ttile")
+                    b.Property<string>("Title")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
