@@ -1,17 +1,20 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using System.Threading.Tasks;
+using Tournament.API.Extensions;
 using Tournament.Data.Data;
 
 namespace Tournament.API
 {
     public class Program
     {
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
             builder.Services.AddDbContext<TournamentContext>(options =>
                 options.UseSqlServer(builder.Configuration.GetConnectionString("TournamentContext") ?? throw new InvalidOperationException("Connection string 'TournamentContext' not found.")));
-
+            
+            
             // Add services to the container.
 
             builder.Services.AddControllers();
@@ -20,12 +23,14 @@ namespace Tournament.API
             builder.Services.AddSwaggerGen();
 
             var app = builder.Build();
+            await app.SeedDataAsync();
 
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
                 app.UseSwaggerUI();
+                
             }
 
             app.UseHttpsRedirection();
