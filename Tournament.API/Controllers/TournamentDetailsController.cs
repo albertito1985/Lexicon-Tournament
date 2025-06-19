@@ -8,12 +8,13 @@ using Microsoft.EntityFrameworkCore;
 using Tournament.Data.Data;
 using Tournament.Core.Entities;
 using Turnament.Data.Repositories;
+using Tournament.Core.Repositories;
 
 namespace Tournament.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class TournamentDetailsController(TournamentRepository repository) : ControllerBase
+    public class TournamentDetailsController(ITournamentRepository repository) : ControllerBase
     {
         // GET: api/TournamentDetails
         [HttpGet]
