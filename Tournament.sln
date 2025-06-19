@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.14.36203.30 d17.14
+VisualStudioVersion = 17.14.36203.30
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tournament.API", "Tournament.API\Tournament.API.csproj", "{78C5EC1A-6625-4595-A348-AF5DD566C1B9}"
 	ProjectSection(ProjectDependencies) = postProject
@@ -11,7 +11,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tournament.API", "Tournamen
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tournament.Core", "Tournament.Core\Tournament.Core.csproj", "{6EC8618B-9035-4C36-8BDE-046C2DC5F4AD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Turnament.Data", "Turnament.Data\Turnament.Data.csproj", "{2085D535-5C73-4BF0-83E0-8A56F089D6C0}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tournament.Data", "Turnament.Data\Tournament.Data.csproj", "{2085D535-5C73-4BF0-83E0-8A56F089D6C0}"
 	ProjectSection(ProjectDependencies) = postProject
 		{6EC8618B-9035-4C36-8BDE-046C2DC5F4AD} = {6EC8618B-9035-4C36-8BDE-046C2DC5F4AD}
 	EndProjectSection

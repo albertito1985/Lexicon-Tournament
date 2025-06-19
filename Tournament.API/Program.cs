@@ -16,7 +16,6 @@ namespace Tournament.API
             builder.Services.AddDbContext<TournamentContext>(options =>
                 options.UseSqlServer(builder.Configuration.GetConnectionString("TournamentContext") ?? throw new InvalidOperationException("Connection string 'TournamentContext' not found.")));
             
-            
             // Add services to the container.
 
             builder.Services.AddControllers();
@@ -25,6 +24,7 @@ namespace Tournament.API
             builder.Services.AddSwaggerGen();
             builder.Services.AddScoped<ITournamentRepository, TournamentRepository>();
             builder.Services.AddScoped<IGameRepository, GameRepository>();
+            builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
             var app = builder.Build();
             await app.SeedDataAsync();

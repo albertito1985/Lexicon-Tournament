@@ -19,7 +19,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Tournament.Core\Tournament.Core.csproj" />
-    <ProjectReference Include="..\Turnament.Data\Turnament.Data.csproj" />
+    <ProjectReference Include="..\Turnament.Data\Tournament.Data.csproj" />
   </ItemGroup>
 
 </Project>

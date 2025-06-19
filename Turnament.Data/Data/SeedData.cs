@@ -1,8 +1,6 @@
 ﻿using Bogus;
 using Microsoft.EntityFrameworkCore;
 using Tournament.Core.Entities;
-using Tournament.Data.Data;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 
 namespace Tournament.Data.Data
 {

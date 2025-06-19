@@ -14,20 +14,22 @@ namespace Tournament.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class TournamentDetailsController(ITournamentRepository repository) : ControllerBase
+    public class TournamentDetailsController(IUnitOfWork uOW) : ControllerBase
     {
+        IUnitOfWork UOW { get; init; } = uOW;
+
         // GET: api/TournamentDetails
         [HttpGet]
         public async Task<ActionResult<IEnumerable<TournamentDetails>>> GetTournamentDetails()
         {
-            return Ok(await repository.GetAllAsync());
+            return Ok(await UOW.TournamentRepository.GetAllAsync());
         }
 
         // GET: api/TournamentDetails/5
         [HttpGet("{id}")]
         public async Task<ActionResult<TournamentDetails>> GetTournamentDetails(int id)
         {
-            var tournamentDetails = await repository.GetAsync(id);
+            var tournamentDetails = await UOW.TournamentRepository.GetAsync(id);
 
             if (tournamentDetails == null)
             {
@@ -47,11 +49,11 @@ namespace Tournament.API.Controllers
                 return BadRequest();
             }
 
-            repository.Update(tournamentDetails);
+            UOW.TournamentRepository.Update(tournamentDetails);
 
             try
             {
-                await _context.SaveChangesAsync();
+                await UOW.PersistAsync();
             }
             catch (DbUpdateConcurrencyException)
             {
@@ -73,8 +75,8 @@ namespace Tournament.API.Controllers
         [HttpPost]
         public async Task<ActionResult<TournamentDetails>> PostTournamentDetails(TournamentDetails tournamentDetails)
         {
-            repository.Add(tournamentDetails);
-            await _context.SaveChangesAsync();
+            UOW.TournamentRepository.Add(tournamentDetails);
+            await UOW.PersistAsync();
 
             return CreatedAtAction("GetTournamentDetails", new { id = tournamentDetails.Id }, tournamentDetails);
         }
@@ -84,21 +86,21 @@ namespace Tournament.API.Controllers
         public async Task<IActionResult> DeleteTournamentDetails(int id)
         {
             //man ska ta bort games som har det här tournament först.
-            var tournamentDetails = await repository.GetAsync(id);
+            var tournamentDetails = await UOW.TournamentRepository.GetAsync(id);
             if (tournamentDetails == null)
             {
                 return NotFound();
             }
 
-            repository.Remove(tournamentDetails);
-            await _context.SaveChangesAsync();
+            UOW.TournamentRepository.Remove(tournamentDetails);
+            await UOW.PersistAsync();
 
             return NoContent();
         }
 
         private async Task<bool> TournamentDetailsExists(int id)
         {
-            return await repository.AnyAsync(id) ;
+            return await UOW.TournamentRepository.AnyAsync(id) ;
         }
     }
 }

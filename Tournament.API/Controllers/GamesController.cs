@@ -13,20 +13,22 @@ namespace Tournament.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class GamesController(IGameRepository repository) : ControllerBase
+    public class GamesController(IUnitOfWork uOW) : ControllerBase
     {
+        IUnitOfWork UOW { get; init;} = uOW;
+
         // GET: api/Games
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Game>>> GetGame()
         {
-            return Ok(await repository.GetAllAsync());
+            return Ok(await UOW.GameRepository.GetAllAsync());
         }
 
         // GET: api/Games/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Game>> GetGame(int id)
         {
-            var game = await repository.GetAsync(id);
+            var game = await UOW.GameRepository.GetAsync(id);
 
             if (game == null)
             {
@@ -46,11 +48,11 @@ namespace Tournament.API.Controllers
                 return BadRequest();
             }
 
-            repository.Update(game);
+            UOW.GameRepository.Update(game);
 
             try
             {
-                await _context.SaveChangesAsync();
+                await UOW.PersistAsync();
             }
             catch (DbUpdateConcurrencyException)
             {
@@ -72,8 +74,8 @@ namespace Tournament.API.Controllers
         [HttpPost]
         public async Task<ActionResult<Game>> PostGame(Game game)
         {
-            repository.Add(game);
-            await _context.SaveChangesAsync();
+            UOW.GameRepository.Add(game);
+            await UOW.PersistAsync();
 
             return CreatedAtAction("GetGame", new { id = game.Id }, game);
         }
@@ -82,21 +84,21 @@ namespace Tournament.API.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteGame(int id)
         {
-            var game = await _context.Game.FindAsync(id);
+            var game = await UOW.GameRepository.GetAsync(id);
             if (game == null)
             {
                 return NotFound();
             }
 
-            repository.Remove(game);
-            await _context.SaveChangesAsync();
+            UOW.GameRepository.Remove(game);
+            await UOW.PersistAsync();
 
             return NoContent();
         }
 
         private async Task<bool> GameExists(int id)
         {
-            return await repository.AnyAsync(id);
+            return await UOW.GameRepository.AnyAsync(id);
         }
     }
 }
