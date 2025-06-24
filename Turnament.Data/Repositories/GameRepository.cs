@@ -32,6 +32,11 @@ namespace Turnament.Data.Repositories
             return await context.Game.FindAsync(id);
         }
 
+        public async Task<Game> GetAsync(string title)
+        {
+            return await context.Game.FirstAsync(g =>g.Title == title);
+        }
+
         public void Remove(Game game)
         {
             context.Game.Remove(game);

@@ -19,4 +19,5 @@ namespace Turnament.Data.Repositories
             await context.SaveChangesAsync();
         }
     }
+
 }

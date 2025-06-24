@@ -22,14 +22,17 @@ namespace Turnament.Data.Repositories
             return await context.TournamentDetails.AnyAsync(t => t.Id == id);
         }
 
-        public async Task<IEnumerable<TournamentDetails>> GetAllAsync()
+        public async Task<IEnumerable<TournamentDetails>> GetAllAsync(bool includeEmployees = false)
         {
-            return await context.TournamentDetails.ToListAsync();
+            return includeEmployees ? await context.TournamentDetails.Include(t =>t.Games ).ToListAsync()
+                                    : await context.TournamentDetails.ToListAsync();
         }
 
         public async Task<TournamentDetails> GetAsync(int id)
         {
-            return await context.TournamentDetails.FindAsync(id);
+            return await context.TournamentDetails
+                .Include(t => t.Games)
+                .FirstAsync(t => t.Id == id);
         }
 
         public void Remove(TournamentDetails tournament)

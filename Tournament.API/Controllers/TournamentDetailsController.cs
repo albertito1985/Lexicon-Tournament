@@ -9,20 +9,25 @@ using Tournament.Data.Data;
 using Tournament.Core.Entities;
 using Turnament.Data.Repositories;
 using Tournament.Core.Repositories;
+using AutoMapper;
+using Tournament.Core.DTOs;
+using Azure;
+using Microsoft.AspNetCore.JsonPatch;
 
 namespace Tournament.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class TournamentDetailsController(IUnitOfWork uOW) : ControllerBase
+    public class TournamentDetailsController(IUnitOfWork UOW, IMapper mapper) : ControllerBase
     {
-        IUnitOfWork UOW { get; init; } = uOW;
 
         // GET: api/TournamentDetails
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<TournamentDetails>>> GetTournamentDetails()
+        public async Task<ActionResult<IEnumerable<TournamentDetails>>> GetTournamentDetails(bool includeEmployees)
         {
-            return Ok(await UOW.TournamentRepository.GetAllAsync());
+            var tournaments = await UOW.TournamentRepository.GetAllAsync(includeEmployees);
+            var tournametnsDTOs = mapper.Map<IEnumerable<TournamentDetailsDTO>>(tournaments);
+            return Ok(tournametnsDTOs);
         }
 
         // GET: api/TournamentDetails/5
@@ -36,20 +41,24 @@ namespace Tournament.API.Controllers
                 return NotFound();
             }
 
-            return tournamentDetails;
+            var tournamentDetailsDTO = mapper.Map<TournamentDetailsDTO>(tournamentDetails);
+
+            return Ok(tournamentDetailsDTO);
         }
 
         // PUT: api/TournamentDetails/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutTournamentDetails(int id, TournamentDetails tournamentDetails)
+        public async Task<IActionResult> PutTournamentDetails(int id, TournamentUpdateDTO tournamentDTO)
         {
-            if (id != tournamentDetails.Id)
+            var tournament = await UOW.TournamentRepository.GetAsync(id);
+            if (tournament == null)
             {
                 return BadRequest();
             }
 
-            UOW.TournamentRepository.Update(tournamentDetails);
+            mapper.Map(tournamentDTO, tournament);
+            UOW.TournamentRepository.Update(tournament);
 
             try
             {
@@ -73,12 +82,20 @@ namespace Tournament.API.Controllers
         // POST: api/TournamentDetails
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<TournamentDetails>> PostTournamentDetails(TournamentDetails tournamentDetails)
+        public async Task<ActionResult<TournamentDetails>> PostTournamentDetails(TournamentDetailsDTO tournamentDetailsDTO)
         {
+            if (tournamentDetailsDTO == null)
+            {
+                return BadRequest("Tournament cannot be null.");
+            }
+
+            var tournamentDetails = mapper.Map<TournamentDetails>(tournamentDetailsDTO);
             UOW.TournamentRepository.Add(tournamentDetails);
             await UOW.PersistAsync();
 
-            return CreatedAtAction("GetTournamentDetails", new { id = tournamentDetails.Id }, tournamentDetails);
+            tournamentDetailsDTO = mapper.Map<TournamentDetailsDTO>(tournamentDetails);
+
+            return CreatedAtAction("GetTournamentDetails", new { id = tournamentDetails.Id }, tournamentDetailsDTO);
         }
 
         // DELETE: api/TournamentDetails/5
@@ -91,13 +108,47 @@ namespace Tournament.API.Controllers
             {
                 return NotFound();
             }
-
+            if (tournamentDetails.Games.Count > 0)
+            {
+                foreach(Game game in tournamentDetails.Games)
+                {
+                    UOW.GameRepository.Remove(game);
+                }
+            }
+            
             UOW.TournamentRepository.Remove(tournamentDetails);
             await UOW.PersistAsync();
 
             return NoContent();
         }
 
+        [HttpPatch("{id}")]
+        public async Task<ActionResult> PatchTournament(int id, JsonPatchDocument<TournamentUpdateDTO> patchDoc)
+        {
+            if (patchDoc is null) return BadRequest("no patch document");
+
+            var tournamentToPatch = await UOW.TournamentRepository.GetAsync(id);
+
+            if (tournamentToPatch.Equals(null)) return NotFound("Tournament does not exist");
+
+            var dto = mapper.Map<TournamentUpdateDTO>(tournamentToPatch);
+
+            patchDoc.ApplyTo(dto, ModelState);
+
+            TryValidateModel(dto);
+
+            if (!ModelState.IsValid)
+            {
+                return UnprocessableEntity(ModelState);
+            }
+
+            //tournamentToPatch = mapper.Map<TournamentDetails>(dto);
+            mapper.Map(dto, tournamentToPatch);
+            await UOW.PersistAsync();
+
+            return NoContent();
+
+        }
         private async Task<bool> TournamentDetailsExists(int id)
         {
             return await UOW.TournamentRepository.AnyAsync(id) ;

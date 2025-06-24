@@ -1,32 +1,36 @@
-﻿using System;
+﻿using AutoMapper;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.JsonPatch;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Tournament.Data.Data;
+using Tournament.Core.DTOs;
 using Tournament.Core.Entities;
 using Tournament.Core.Repositories;
+using Tournament.Data.Data;
 
 namespace Tournament.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class GamesController(IUnitOfWork uOW) : ControllerBase
+    public class GamesController(IUnitOfWork UOW, IMapper mapper) : ControllerBase
     {
-        IUnitOfWork UOW { get; init;} = uOW;
 
         // GET: api/Games
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Game>>> GetGame()
         {
-            return Ok(await UOW.GameRepository.GetAllAsync());
+            var games = await UOW.GameRepository.GetAllAsync();
+            var gameDTOs = mapper.Map<IEnumerable<Game>>(games);
+            return Ok(gameDTOs);
         }
 
         // GET: api/Games/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Game>> GetGame(int id)
+        [HttpGet("{id:int}")]
+        public async Task<ActionResult<Game>> GetGameFromId(int id)
         {
             var game = await UOW.GameRepository.GetAsync(id);
 
@@ -34,20 +38,36 @@ namespace Tournament.API.Controllers
             {
                 return NotFound();
             }
+            var gameDTO = mapper.Map<Game>(game);
+            return Ok(game);
+        }
 
-            return game;
+        // GET: api/Games/5
+        [HttpGet("{title}")]
+        public async Task<ActionResult<Game>> GetGameFromTitle(string title)
+        {
+            var game = await UOW.GameRepository.GetAsync(title);
+
+            if (game == null)
+            {
+                return NotFound();
+            }
+            var gameDTO = mapper.Map<Game>(game);
+            return Ok(game);
         }
 
         // PUT: api/Games/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutGame(int id, Game game)
+        public async Task<IActionResult> PutGame(int id, GameUpdateDTO gameDTO)
         {
-            if (id != game.Id)
+            var game = await UOW.GameRepository.GetAsync(id);
+            if (game == null)
             {
                 return BadRequest();
             }
 
+            mapper.Map(gameDTO, game);
             UOW.GameRepository.Update(game);
 
             try
@@ -72,12 +92,21 @@ namespace Tournament.API.Controllers
         // POST: api/Games
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<Game>> PostGame(Game game)
+        public async Task<ActionResult<Game>> PostGame(GameDTO gameDTO)
         {
+            if (gameDTO == null)
+            {
+                return BadRequest("Game cannot be null.");
+            }
+
+            var game = mapper.Map<Game>(gameDTO);
+
             UOW.GameRepository.Add(game);
             await UOW.PersistAsync();
 
-            return CreatedAtAction("GetGame", new { id = game.Id }, game);
+            gameDTO = mapper.Map<GameDTO>(game);
+
+            return CreatedAtAction("GetGame", new { id = game.Id }, gameDTO);
         }
 
         // DELETE: api/Games/5
@@ -94,6 +123,33 @@ namespace Tournament.API.Controllers
             await UOW.PersistAsync();
 
             return NoContent();
+        }
+
+        [HttpPatch("{id}")]
+        public async Task<ActionResult> PatchGame(int id, JsonPatchDocument<GameUpdateDTO> patchDoc)
+        {
+            if (patchDoc == null) return BadRequest("no patch document");
+
+            var gameToPatch = await UOW.GameRepository.GetAsync(id);
+
+            if (gameToPatch.Equals(null)) return NotFound("Game does not exist");
+
+            var dto = mapper.Map<GameUpdateDTO>(gameToPatch);
+
+            patchDoc.ApplyTo(dto, ModelState);
+
+            TryValidateModel(dto);
+
+            if (!ModelState.IsValid)
+            {
+                return UnprocessableEntity(ModelState);
+            }
+
+            mapper.Map(dto, gameToPatch);
+            await UOW.PersistAsync();
+
+            return NoContent();
+
         }
 
         private async Task<bool> GameExists(int id)
