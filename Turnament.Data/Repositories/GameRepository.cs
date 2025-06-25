@@ -22,9 +22,10 @@ namespace Turnament.Data.Repositories
             return await context.Game.AnyAsync(g => g.Id == id);
         }
 
-        public async Task<IEnumerable<Game>> GetAllAsync()
+        public async Task<IEnumerable<Game>> GetAllAsync(bool orderedResult = false)
         {
-            return await context.Game.ToListAsync();
+            return orderedResult? await context.Game.OrderBy(g => g.Title).ToListAsync()
+                                : await context.Game.ToListAsync();
         }
 
         public async Task<Game> GetAsync(int id)

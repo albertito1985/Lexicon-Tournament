@@ -21,9 +21,9 @@ namespace Tournament.API.Controllers
 
         // GET: api/Games
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Game>>> GetGame()
+        public async Task<ActionResult<IEnumerable<Game>>> GetGame({bool orderedResult, DateTime startDate, DateTime endDate})
         {
-            var games = await UOW.GameRepository.GetAllAsync();
+            var games = await UOW.GameRepository.GetAllAsync(gameGetDTO);
             var gameDTOs = mapper.Map<IEnumerable<Game>>(games);
             return Ok(gameDTOs);
         }
@@ -39,7 +39,7 @@ namespace Tournament.API.Controllers
                 return NotFound();
             }
             var gameDTO = mapper.Map<Game>(game);
-            return Ok(game);
+            return Ok(gameDTO);
         }
 
         // GET: api/Games/5
@@ -53,7 +53,7 @@ namespace Tournament.API.Controllers
                 return NotFound();
             }
             var gameDTO = mapper.Map<Game>(game);
-            return Ok(game);
+            return Ok(gameDTO);
         }
 
         // PUT: api/Games/5
@@ -92,7 +92,7 @@ namespace Tournament.API.Controllers
         // POST: api/Games
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<Game>> PostGame(GameDTO gameDTO)
+        public async Task<ActionResult<Game>> PostGame(GameUpdateDTO gameDTO)
         {
             if (gameDTO == null)
             {
@@ -104,7 +104,7 @@ namespace Tournament.API.Controllers
             UOW.GameRepository.Add(game);
             await UOW.PersistAsync();
 
-            gameDTO = mapper.Map<GameDTO>(game);
+            gameDTO = mapper.Map<GameUpdateDTO>(game);
 
             return CreatedAtAction("GetGame", new { id = game.Id }, gameDTO);
         }
