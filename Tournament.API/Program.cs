@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Tournament.API.Extensions;
 using Tournament.Core.Repositories;
 using Tournament.Data.Data;
+using Tournament.Data.Repositories;
 using Turnament.Data.Repositories;
 
 namespace Tournament.API

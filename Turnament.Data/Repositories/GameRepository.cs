@@ -4,9 +4,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Tournament.Core.DTOs;
 using Tournament.Core.Entities;
 using Tournament.Core.Repositories;
 using Tournament.Data.Data;
+using System.Linq.Dynamic.Core;
 
 namespace Turnament.Data.Repositories
 {
@@ -22,10 +24,20 @@ namespace Turnament.Data.Repositories
             return await context.Game.AnyAsync(g => g.Id == id);
         }
 
-        public async Task<IEnumerable<Game>> GetAllAsync(bool orderedResult = false)
+        public async Task<IEnumerable<Game>> GetAllAsync(GameGetParamsDTO getParams)
         {
-            return orderedResult? await context.Game.OrderBy(g => g.Title).ToListAsync()
-                                : await context.Game.ToListAsync();
+            if (getParams == null) return await context.Game.ToListAsync();
+
+            IQueryable<Game> query = context.Game;
+
+            if (getParams.StartTime!= null) query = query.Where(g => g.Time > getParams.StartTime);
+            if (getParams.EndTime!= null) query = query.Where(g => g.Time < getParams.EndTime);
+            if (getParams.OrderCriteria != null) query = query.OrderBy(getParams.OrderCriteria);
+
+            int skip = (getParams.PageNumber - 1) * getParams.PageSize;
+            query = query.Skip(skip).Take(getParams.PageSize);
+
+            return await query.ToListAsync();
         }
 
         public async Task<Game> GetAsync(int id)

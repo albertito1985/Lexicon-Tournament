@@ -21,9 +21,9 @@ namespace Tournament.API.Controllers
 
         // GET: api/Games
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Game>>> GetGame({bool orderedResult, DateTime startDate, DateTime endDate})
+        public async Task<ActionResult<IEnumerable<Game>>> GetGame([FromQuery] GameGetParamsDTO getparamsDTO)
         {
-            var games = await UOW.GameRepository.GetAllAsync(gameGetDTO);
+            var games = await UOW.GameRepository.GetAllAsync(getparamsDTO);
             var gameDTOs = mapper.Map<IEnumerable<Game>>(games);
             return Ok(gameDTOs);
         }

@@ -23,9 +23,9 @@ namespace Tournament.API.Controllers
 
         // GET: api/TournamentDetails
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<TournamentDetails>>> GetTournamentDetails(bool includeEmployees, bool orderedResults)
+        public async Task<ActionResult<IEnumerable<TournamentDetails>>> GetTournamentDetails([FromQuery]TournamentGetParamsDTO getParams)
         {
-            var tournaments = await UOW.TournamentRepository.GetAllAsync(includeEmployees, orderedResults);
+            var tournaments = await UOW.TournamentRepository.GetAllAsync(getParams);
             var tournametnsDTOs = mapper.Map<IEnumerable<TournamentDetailsDTO>>(tournaments);
             return Ok(tournametnsDTOs);
         }

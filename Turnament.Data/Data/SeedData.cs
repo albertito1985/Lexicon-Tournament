@@ -43,14 +43,16 @@ namespace Tournament.Data.Data
             var faker = new Faker<TournamentDetails>("sv").Rules((f, t) =>
             {
                 t.Title = f.PickRandom(tournamentNames);
-                t.StartDate = f.Date.Future();
-                t.Games = GenerateGames(f.Random.Int(min: 2, max: 10));
+                t.StartDate = f.Date.Future().Date;
+                t.Games = GenerateGames(f.Random.Int(min: 2, max: 10), t.StartDate);
             });
             return faker.Generate(nrOfTournaments);
         }
 
-        private static List<Game> GenerateGames(int nrOfGames)
+        private static List<Game> GenerateGames(int nrOfGames, DateTime startDate)
         {
+            List<DateTime> dates = GenerateDates(startDate);
+            int index = 0;
             string[] gameTitles = new string[]
             {
                 "Duel of the Fates",
@@ -87,9 +89,17 @@ namespace Tournament.Data.Data
             var faker = new Faker<Game>("sv").Rules((f, g) =>
             {
                 g.Title = f.PickRandom(gameTitles);
-                g.Time = f.Date.Between(DateTime.Today.AddHours(8), DateTime.Today.AddHours(22));
+                g.Time = dates[index++];
             });
             return faker.Generate(nrOfGames);
+        }
+
+        private static List<DateTime> GenerateDates(DateTime startDate)
+        {
+            return Enumerable.Range(0, 90)
+                .Select(i => startDate.AddDays(i).Date.AddHours(8))
+                .OrderBy(_ => Guid.NewGuid())
+                .ToList();
         }
     }
 }
