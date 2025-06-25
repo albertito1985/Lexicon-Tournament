@@ -43,7 +43,8 @@ namespace Tournament.Data.Data
             var faker = new Faker<TournamentDetails>("sv").Rules((f, t) =>
             {
                 t.Title = f.PickRandom(tournamentNames);
-                t.StartDate = f.Date.Future().Date;
+                t.StartDate = f.Date.Between(DateTime.Today, DateTime.Today.AddYears(1)).Date;
+                //t.StartDate = f.Date.Future().Date;
                 t.Games = GenerateGames(f.Random.Int(min: 2, max: 10), t.StartDate);
             });
             return faker.Generate(nrOfTournaments);
