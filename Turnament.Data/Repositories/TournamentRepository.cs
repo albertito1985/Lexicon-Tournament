@@ -8,7 +8,7 @@ using Tournament.Core.Entities;
 using Tournament.Core.Repositories;
 using Tournament.Data.Data;
 
-namespace Turnament.Data.Repositories
+namespace Tournament.Data.Repositories
 {
     public class TournamentRepository(TournamentContext context) : ITournamentRepository
     {
@@ -22,10 +22,16 @@ namespace Turnament.Data.Repositories
             return await context.TournamentDetails.AnyAsync(t => t.Id == id);
         }
 
-        public async Task<IEnumerable<TournamentDetails>> GetAllAsync(bool includeEmployees = false)
+        public async Task<IEnumerable<TournamentDetails>> GetAllAsync(bool includeEmployees = false, bool orderedResult = false)
         {
-            return includeEmployees ? await context.TournamentDetails.Include(t =>t.Games ).ToListAsync()
+           var result = includeEmployees ? await context.TournamentDetails.Include(t =>t.Games ).ToListAsync()
                                     : await context.TournamentDetails.ToListAsync();
+            if (orderedResult)
+            {
+                result = [.. result.OrderBy(t => t.Title)];
+            }
+
+            return result;
         }
 
         public async Task<TournamentDetails> GetAsync(int id)
