@@ -1,16 +1,10 @@
 ﻿using AutoMapper;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Tournament.Core.DTOs;
 using Tournament.Core.Entities;
 using Tournament.Core.Repositories;
-using Tournament.Data.Data;
 
 namespace Tournament.API.Controllers
 {
@@ -24,7 +18,7 @@ namespace Tournament.API.Controllers
         public async Task<ActionResult<IEnumerable<Game>>> GetGame([FromQuery] GameGetParamsDTO getparamsDTO)
         {
             var games = await UOW.GameRepository.GetAllAsync(getparamsDTO);
-            var gameDTOs = mapper.Map<IEnumerable<Game>>(games);
+            var gameDTOs = mapper.Map<IEnumerable<GameDTO>>(games);
             return Ok(gameDTOs);
         }
 
@@ -38,7 +32,7 @@ namespace Tournament.API.Controllers
             {
                 return NotFound();
             }
-            var gameDTO = mapper.Map<Game>(game);
+            var gameDTO = mapper.Map<GameDTO>(game);
             return Ok(gameDTO);
         }
 
@@ -52,7 +46,7 @@ namespace Tournament.API.Controllers
             {
                 return NotFound();
             }
-            var gameDTO = mapper.Map<Game>(game);
+            var gameDTO = mapper.Map<GameDTO>(game);
             return Ok(gameDTO);
         }
 
@@ -64,7 +58,7 @@ namespace Tournament.API.Controllers
             var game = await UOW.GameRepository.GetAsync(id);
             if (game == null)
             {
-                return BadRequest();
+                return NotFound();
             }
 
             mapper.Map(gameDTO, game);
@@ -76,14 +70,7 @@ namespace Tournament.API.Controllers
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!await GameExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
+                throw;
             }
 
             return NoContent();
@@ -104,7 +91,7 @@ namespace Tournament.API.Controllers
             UOW.GameRepository.Add(game);
             await UOW.PersistAsync();
 
-            gameDTO = mapper.Map<GameUpdateDTO>(game);
+            //gameDTO = mapper.Map<GameUpdateDTO>(game);
 
             return CreatedAtAction("GetGame", new { id = game.Id }, gameDTO);
         }
@@ -132,7 +119,7 @@ namespace Tournament.API.Controllers
 
             var gameToPatch = await UOW.GameRepository.GetAsync(id);
 
-            if (gameToPatch.Equals(null)) return NotFound("Game does not exist");
+            if (gameToPatch== null) return NotFound("Game does not exist");
 
             var dto = mapper.Map<GameUpdateDTO>(gameToPatch);
 
