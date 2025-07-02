@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Service.Contracts;
 using System;
 using System.Collections.Generic;
@@ -11,21 +12,26 @@ using System.Threading.Tasks;
 using Tournament.Core.DTOs;
 using Tournament.Core.Entities;
 using Tournament.Core.Repositories;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace Tournament.Services
 {
-    public class GameService(IUnitOfWork UOW, IMapper mapper) : ControllerBase, IGameService
+    public class GameService(IUnitOfWork uow, IMapper mapper) : ControllerBase, IGameService
     {
-        public async Task<IEnumerable<GameDTO>> GetGame(GameGetParamsDTO getparamsDTO)
+        public async Task<CollectionResponseDTO<GameDTO>> GetGame(GameGetParamsDTO getparamsDTO)
         {
-            var games = await UOW.GameRepository.GetAllAsync(getparamsDTO);
-            var gameDTOs = mapper.Map<IEnumerable<GameDTO>>(games);
-            return gameDTOs;
+            if (getparamsDTO.PageSize>100) getparamsDTO.PageSize = 100;
+
+            var CollectionDTOofGames = await uow.GameRepository.GetAllAsync(getparamsDTO);
+
+            var CollectionDTOofGamesDTO = mapper.Map<CollectionResponseDTO<GameDTO>>(CollectionDTOofGames);
+
+            return CollectionDTOofGamesDTO;
         }
 
         public async Task<GameDTO> GetGameFromId(int id)
         {
-            var game = await UOW.GameRepository.GetAsync(id);
+            var game = await uow.GameRepository.GetAsync(id);
 
             if (game == null)
             {
@@ -37,7 +43,7 @@ namespace Tournament.Services
 
         public async Task<GameDTO> GetGameFromTitle(string title)
         {
-            var game = await UOW.GameRepository.GetAsync(title);
+            var game = await uow.GameRepository.GetAsync(title);
 
             if (game == null)
             {
@@ -49,18 +55,18 @@ namespace Tournament.Services
 
         public async Task PutGame(int id, GameUpdateDTO gameDTO)
         {
-            var game = await UOW.GameRepository.GetAsync(id);
+            var game = await uow.GameRepository.GetAsync(id);
             if (game == null)
             {
                 return;
             }
 
             mapper.Map(gameDTO, game);
-            UOW.GameRepository.Update(game);
+            uow.GameRepository.Update(game);
 
             try
             {
-                await UOW.PersistAsync();
+                await uow.PersistAsync();
             }
             catch (DbUpdateConcurrencyException)
             {
@@ -79,8 +85,8 @@ namespace Tournament.Services
 
             var game = mapper.Map<Game>(gameDTO);
 
-            UOW.GameRepository.Add(game);
-            await UOW.PersistAsync();
+            uow.GameRepository.Add(game);
+            await uow.PersistAsync();
 
             //gameDTO = mapper.Map<GameUpdateDTO>(game);
 
@@ -90,22 +96,22 @@ namespace Tournament.Services
 
         public async Task DeleteGame(int id)
         {
-            var game = await UOW.GameRepository.GetAsync(id);
+            var game = await uow.GameRepository.GetAsync(id);
             if (game == null)
             {
                 //Need to make a differece between not found and already deleted
                 return;
             }
 
-            UOW.GameRepository.Remove(game);
-            await UOW.PersistAsync();
+            uow.GameRepository.Remove(game);
+            await uow.PersistAsync();
         }
 
         public async Task PatchGame(int id, JsonPatchDocument<GameUpdateDTO> patchDoc)
         {
             if (patchDoc == null) return;
 
-            var gameToPatch = await UOW.GameRepository.GetAsync(id);
+            var gameToPatch = await uow.GameRepository.GetAsync(id);
 
             if (gameToPatch== null) return;
 
@@ -121,13 +127,13 @@ namespace Tournament.Services
             }
 
             mapper.Map(dto, gameToPatch);
-            await UOW.PersistAsync();
+            await uow.PersistAsync();
         }
 
         //No calls to GameExists
         private async Task<bool> GameExists(int id)
         {
-            return await UOW.GameRepository.AnyAsync(id);
+            return await uow.GameRepository.AnyAsync(id);
         }
     }
 

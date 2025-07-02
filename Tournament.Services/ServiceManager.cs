@@ -7,8 +7,9 @@ using System.Threading.Tasks;
 
 namespace Tournament.Services
 {
-    public class ServiceManager(IGameService gameService) : IServiceManager
+    public class ServiceManager(IGameService gameService, ITournamentService tournamentService) : IServiceManager
     {
         public IGameService GameService => gameService;
+        public ITournamentService TournamentService => tournamentService;
     }
 }

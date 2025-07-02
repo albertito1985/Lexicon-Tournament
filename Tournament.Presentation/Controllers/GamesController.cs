@@ -11,7 +11,7 @@ namespace Tournament.Presentation.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class GamesController(IServiceManager serviceManager,IUnitOfWork UOW, IMapper mapper) : ControllerBase
+    public class GamesController(IServiceManager serviceManager) : ControllerBase
     {
 
         // GET: api/Games
@@ -172,7 +172,5 @@ namespace Tournament.Presentation.Controllers
             return NoContent();
 
         }
-
-        
     }
 }

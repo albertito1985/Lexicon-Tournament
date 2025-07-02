@@ -24,20 +24,28 @@ namespace Turnament.Data.Repositories
             return await context.Game.AnyAsync(g => g.Id == id);
         }
 
-        public async Task<IEnumerable<Game>> GetAllAsync(GameGetParamsDTO getParams)
+        public async Task<CollectionResponseDTO<Game>> GetAllAsync(GameGetParamsDTO getParams)
         {
-            if (getParams == null) return await context.Game.ToListAsync();
 
             IQueryable<Game> query = context.Game;
-
+            var TotalItems = query.Count();
             if (getParams.StartTime!= null) query = query.Where(g => g.Time > getParams.StartTime);
             if (getParams.EndTime!= null) query = query.Where(g => g.Time < getParams.EndTime);
             if (getParams.OrderCriteria != null) query = query.OrderBy(getParams.OrderCriteria);
 
+            int TotalPages = (int)Math.Ceiling((double)TotalItems / getParams.PageSize);
             int skip = (getParams.PageNumber - 1) * getParams.PageSize;
             query = query.Skip(skip).Take(getParams.PageSize);
+            var items = await query.ToListAsync();
 
-            return await query.ToListAsync();
+            return new CollectionResponseDTO<Game>()
+            {
+                Items = items,
+                TotalPages = TotalPages,
+                PageSize = items.Count,
+                CurrentPage = getParams.PageNumber,
+                TotalItems = TotalItems
+            };
         }
 
         public async Task<Game> GetAsync(int id)

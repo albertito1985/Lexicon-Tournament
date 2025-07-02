@@ -24,21 +24,31 @@ namespace Tournament.Data.Repositories
             return await context.TournamentDetails.AnyAsync(t => t.Id == id);
         }
 
-        public async Task<IEnumerable<TournamentDetails>> GetAllAsync(TournamentGetParamsDTO getParams)
+        public async Task<CollectionResponseDTO<TournamentDetails>> GetAllAsync(TournamentGetParamsDTO getParams)
         {
-            if(getParams == null) return await context.TournamentDetails.ToListAsync();
 
             IQueryable<TournamentDetails> query = context.TournamentDetails;
 
+            var TotalItems = query.Count();
             if (getParams.IncludeGames == true) query = query.Include(t => t.Games);
             if (getParams.StartDate != null) query = query.Where(t => t.StartDate >= getParams.StartDate);
             if (getParams.EndDate != null) query = query.Where(t => t.StartDate <= getParams.EndDate);
             if (getParams.OrderCriteria != null) query = query.OrderBy(getParams.OrderCriteria);
 
+            int TotalPages = (int)Math.Ceiling((double)TotalItems / getParams.PageSize);
+            if (getParams.PageSize>100) getParams.PageSize = 100;
             int skip = (getParams.PageNumber - 1) * getParams.PageSize;
             query = query.Skip(skip).Take(getParams.PageSize);
+            var items = await query.ToListAsync();
 
-            return query.ToList();
+            return new CollectionResponseDTO<TournamentDetails>()
+            {
+                Items = items,
+                TotalPages = TotalPages,
+                PageSize = items.Count,
+                CurrentPage = getParams.PageNumber,
+                TotalItems = TotalItems
+            };
         }
 
         public async Task<TournamentDetails> GetAsync(int id)

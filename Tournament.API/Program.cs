@@ -22,11 +22,8 @@ namespace Tournament.API
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
-            builder.Services.AddScoped<ITournamentRepository, TournamentRepository>();
-            builder.Services.AddScoped<IGameRepository, GameRepository>();
-            builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
-            builder.Services.AddAutoMapper(typeof(TournamentMappings));
 
+            builder.Services.ConfigureRepositoryLayerServices();
             builder.Services.ConfigureCors();
             builder.Services.ConfigureServiceLayerServices();
 
