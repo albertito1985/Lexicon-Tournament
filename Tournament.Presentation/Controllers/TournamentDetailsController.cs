@@ -14,7 +14,7 @@ using Tournament.Core.DTOs;
 using Azure;
 using Microsoft.AspNetCore.JsonPatch;
 
-namespace Tournament.API.Controllers
+namespace Tournament.Presentation.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
@@ -133,7 +133,7 @@ namespace Tournament.API.Controllers
 
             var dto = mapper.Map<TournamentUpdateDTO>(tournamentToPatch);
 
-            patchDoc.ApplyTo(dto, ModelState);
+            //patchDoc.ApplyTo(dto, ModelState);
 
             TryValidateModel(dto);
 

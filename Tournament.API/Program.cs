@@ -27,6 +27,9 @@ namespace Tournament.API
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
             builder.Services.AddAutoMapper(typeof(TournamentMappings));
 
+            builder.Services.ConfigureCors();
+            builder.Services.ConfigureServiceLayerServices();
+
             var app = builder.Build();
             await app.SeedDataAsync();
 
@@ -34,8 +37,7 @@ namespace Tournament.API
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
-                app.UseSwaggerUI();
-                
+                app.UseSwaggerUI(); 
             }
 
             app.UseHttpsRedirection();
