@@ -78,14 +78,8 @@ namespace Tournament.Presentation.Controllers
             //}
 
             //return NoContent();
-            try
-            {
-                await serviceManager.GameService.PutGame(id, gameDTO);
-            }
-            catch
-            {
 
-            }
+            await serviceManager.GameService.PutGame(id, gameDTO);
 
             return NoContent();
         }
@@ -124,14 +118,8 @@ namespace Tournament.Presentation.Controllers
             //await UOW.PersistAsync();
 
             //return NoContent();
-            try
-            {
-                await serviceManager.GameService.DeleteGame(id);
-            }
-            catch
-            {
 
-            }
+            await serviceManager.GameService.DeleteGame(id);
 
             return NoContent();
         }
@@ -161,14 +149,8 @@ namespace Tournament.Presentation.Controllers
 
             //return NoContent();
 
-            try
-            {
-                await serviceManager.GameService.PatchGame(id, patchDoc);
-            }
-            catch
-            {
+            await serviceManager.GameService.PatchGame(id, patchDoc);
 
-            }
             return NoContent();
 
         }

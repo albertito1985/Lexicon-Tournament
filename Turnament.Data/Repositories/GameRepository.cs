@@ -10,7 +10,7 @@ using Tournament.Core.Repositories;
 using Tournament.Data.Data;
 using System.Linq.Dynamic.Core;
 
-namespace Turnament.Data.Repositories
+namespace Tournament.Data.Repositories
 {
     public class GameRepository(TournamentContext context) : IGameRepository
     {
@@ -26,7 +26,6 @@ namespace Turnament.Data.Repositories
 
         public async Task<CollectionResponseDTO<Game>> GetAllAsync(GameGetParamsDTO getParams)
         {
-
             IQueryable<Game> query = context.Game;
             var TotalItems = query.Count();
             if (getParams.StartTime!= null) query = query.Where(g => g.Time > getParams.StartTime);
@@ -55,7 +54,7 @@ namespace Turnament.Data.Repositories
 
         public async Task<Game> GetAsync(string title)
         {
-            return await context.Game.FirstAsync(g =>g.Title == title);
+            return await context.Game.FirstAsync(g => g.Title == title);
         }
 
         public void Remove(Game game)
@@ -66,6 +65,12 @@ namespace Turnament.Data.Repositories
         public void Update(Game game)
         {
             context.Entry(game).State = EntityState.Modified;
+        }
+
+        public async Task<int> GetTournamentsGamesCount(int tournamentId)
+        {
+            var games = await context.Game.Where(g => g.TournamentDetailsId == tournamentId).AsNoTracking().ToListAsync();
+            return games.Count;
         }
     }
 }

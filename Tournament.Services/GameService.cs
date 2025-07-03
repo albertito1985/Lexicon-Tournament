@@ -20,68 +20,52 @@ namespace Tournament.Services
     {
         public async Task<CollectionResponseDTO<GameDTO>> GetGame(GameGetParamsDTO getparamsDTO)
         {
-            if (getparamsDTO.PageSize>100) getparamsDTO.PageSize = 100;
+                if (getparamsDTO.PageSize>100) getparamsDTO.PageSize = 100;
+                var CollectionDTOofGames = await uow.GameRepository.GetAllAsync(getparamsDTO);
 
-            var CollectionDTOofGames = await uow.GameRepository.GetAllAsync(getparamsDTO);
+                var CollectionDTOofGamesDTO = mapper.Map<CollectionResponseDTO<GameDTO>>(CollectionDTOofGames);
 
-            var CollectionDTOofGamesDTO = mapper.Map<CollectionResponseDTO<GameDTO>>(CollectionDTOofGames);
-
-            return CollectionDTOofGamesDTO;
+                return CollectionDTOofGamesDTO;            
         }
 
         public async Task<GameDTO> GetGameFromId(int id)
         {
-            var game = await uow.GameRepository.GetAsync(id);
+            ArgumentNullException.ThrowIfNull(id);
 
-            if (game == null)
-            {
-                return null;
-            }
+            var game = await uow.GameRepository.GetAsync(id) ?? throw new ArgumentException($"There is no game with id {id}");
+
             var gameDTO = mapper.Map<GameDTO>(game);
             return gameDTO;
         }
 
         public async Task<GameDTO> GetGameFromTitle(string title)
         {
-            var game = await uow.GameRepository.GetAsync(title);
-
-            if (game == null)
-            {
-                return null;
-            }
+            ArgumentNullException.ThrowIfNull(title);
+            var game = await uow.GameRepository.GetAsync(title); //?? throw new ArgumentException($"There is no game with title {title}");
             var gameDTO = mapper.Map<GameDTO>(game);
             return gameDTO;
         }
 
         public async Task PutGame(int id, GameUpdateDTO gameDTO)
         {
-            var game = await uow.GameRepository.GetAsync(id);
-            if (game == null)
-            {
-                return;
-            }
+            ArgumentNullException.ThrowIfNull(id);
+            ArgumentNullException.ThrowIfNull(gameDTO);
 
+            var game = await uow.GameRepository.GetAsync(id) ?? throw new ArgumentException($"There is no game with id {id}");
             mapper.Map(gameDTO, game);
             uow.GameRepository.Update(game);
 
-            try
-            {
                 await uow.PersistAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                throw;
-            }
 
             return;
         }
 
         public async Task<int> PostGame(GameUpdateDTO gameDTO)
         {
-            if (gameDTO == null)
-            {
-                //return;
-            }
+            ArgumentNullException.ThrowIfNull(gameDTO);
+
+            if (await uow.GameRepository.GetTournamentsGamesCount(gameDTO.TournamentDetailsId) >= 10)
+                throw new ArgumentException("A tournament cannot have more than 10 games.");
 
             var game = mapper.Map<Game>(gameDTO);
 
@@ -96,25 +80,16 @@ namespace Tournament.Services
 
         public async Task DeleteGame(int id)
         {
-            var game = await uow.GameRepository.GetAsync(id);
-            if (game == null)
-            {
-                //Need to make a differece between not found and already deleted
-                return;
-            }
-
+            var game = await uow.GameRepository.GetAsync(id) ?? throw new ArgumentException($"There is no game with id {id}");
             uow.GameRepository.Remove(game);
             await uow.PersistAsync();
         }
 
         public async Task PatchGame(int id, JsonPatchDocument<GameUpdateDTO> patchDoc)
         {
-            if (patchDoc == null) return;
+            if (patchDoc == null) throw new ArgumentException("There is an error with the changes you want to make");
 
-            var gameToPatch = await uow.GameRepository.GetAsync(id);
-
-            if (gameToPatch== null) return;
-
+            var gameToPatch = await uow.GameRepository.GetAsync(id) ?? throw new ArgumentException($"There is no game with id {id}");
             var dto = mapper.Map<GameUpdateDTO>(gameToPatch);
 
             //patchDoc.ApplyTo(dto, ModelState);

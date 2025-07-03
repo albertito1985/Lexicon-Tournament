@@ -25,13 +25,9 @@ namespace Tournament.Services
 
         public async Task<TournamentDetailsDTO> GetTournamentDetails(int id)
         {
-            var tournamentDetails = await uow.TournamentRepository.GetAsync(id);
+            ArgumentNullException.ThrowIfNull(id);
 
-            if (tournamentDetails == null)
-            {
-                return null;
-            }
-
+            var tournamentDetails = await uow.TournamentRepository.GetAsync(id) ?? throw new ArgumentException($"There is no tournament with id {id}");
             var tournamentDetailsDTO = mapper.Map<TournamentDetailsDTO>(tournamentDetails);
 
             return tournamentDetailsDTO;
@@ -39,58 +35,40 @@ namespace Tournament.Services
 
         public async Task PutTournamentDetails(int id, TournamentUpdateDTO tournamentDTO)
         {
-            var tournament = await uow.TournamentRepository.GetAsync(id);
-            if (tournament == null)
-            {
-                //return null;
-            }
+            ArgumentNullException.ThrowIfNull(id);
 
+            if (tournamentDTO.Games.Count>10)
+                throw new ArgumentException("A tournament cannot have more than 10 games.");
+
+            var tournament = await uow.TournamentRepository.GetAsync(id) ?? throw new ArgumentException($"There is no tournament with id {id}");
             mapper.Map(tournamentDTO, tournament);
             uow.TournamentRepository.Update(tournament);
-
-            try
-            {
-                await uow.PersistAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!await TournamentDetailsExists(id))
-                {
-                    //return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
-            //return NoContent();
+            
+            await uow.PersistAsync();
         }
 
         public async Task<int> PostTournamentDetails(TournamentDetailsDTO tournamentDetailsDTO)
         {
-            if (tournamentDetailsDTO == null)
-            {
-                //return BadRequest("Tournament cannot be null.");
-            }
+            ArgumentNullException.ThrowIfNull(tournamentDetailsDTO);
+
+            if (tournamentDetailsDTO.Games.Count>10)
+                throw new ArgumentException("A Tournament cannot have more than 10 games.");
 
             var tournamentDetails = mapper.Map<TournamentDetails>(tournamentDetailsDTO);
             uow.TournamentRepository.Add(tournamentDetails);
             await uow.PersistAsync();
 
-            tournamentDetailsDTO = mapper.Map<TournamentDetailsDTO>(tournamentDetails);
+            //send tournamentDetailsDTO maybe?
+            //tournamentDetailsDTO = mapper.Map<TournamentDetailsDTO>(tournamentDetails);
 
             return tournamentDetails.Id;
         }
 
         public async Task DeleteTournamentDetails(int id)
         {
-            //man ska ta bort games som har det här tournament först.
-            var tournamentDetails = await uow.TournamentRepository.GetAsync(id);
-            if (tournamentDetails == null)
-            {
-                //return NotFound();
-            }
+            ArgumentNullException.ThrowIfNull(id);
+
+            var tournamentDetails = await uow.TournamentRepository.GetAsync(id) ?? throw new ArgumentException($"There is no tournament with id {id}");
             if (tournamentDetails.Games.Count > 0)
             {
                 foreach (Game game in tournamentDetails.Games)
@@ -101,21 +79,18 @@ namespace Tournament.Services
 
             uow.TournamentRepository.Remove(tournamentDetails);
             await uow.PersistAsync();
-
-            //return NoContent();
         }
 
         public async Task PatchTournament(int id, JsonPatchDocument<TournamentUpdateDTO> patchDoc)
         {
-            //if (patchDoc is null) return BadRequest("no patch document");
+            ArgumentNullException.ThrowIfNull(patchDoc);
+            ArgumentNullException.ThrowIfNull(id);
 
-            var tournamentToPatch = await uow.TournamentRepository.GetAsync(id);
-
-            //if (tournamentToPatch.Equals(null)) return NotFound("Tournament does not exist");
-
+            var tournamentToPatch = await uow.TournamentRepository.GetAsync(id) ?? throw new ArgumentException($"There is no tournament with id {id}");
             var dto = mapper.Map<TournamentUpdateDTO>(tournamentToPatch);
 
             //patchDoc.ApplyTo(dto, ModelState);
+            if (dto.Games.Count>10) throw new ArgumentException("A tournament cannot have more than 10 games.");
 
             TryValidateModel(dto);
 
@@ -127,9 +102,6 @@ namespace Tournament.Services
             //tournamentToPatch = mapper.Map<TournamentDetails>(dto);
             mapper.Map(dto, tournamentToPatch);
             await uow.PersistAsync();
-
-            //return NoContent();
-
         }
         private async Task<bool> TournamentDetailsExists(int id)
         {
