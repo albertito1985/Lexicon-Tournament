@@ -12,20 +12,21 @@ using System.Threading.Tasks;
 using Tournament.Core.DTOs;
 using Tournament.Core.Entities;
 using Tournament.Core.Repositories;
+using Tournament.Core.Request;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace Tournament.Services
 {
     public class GameService(IUnitOfWork uow, IMapper mapper) : ControllerBase, IGameService
     {
-        public async Task<CollectionResponseDTO<GameDTO>> GetGame(GameGetParamsDTO getparamsDTO)
+        //TODO: Aquí me quedé
+        public async Task<(IEnumerable<GameDTO> gamesDTO, RequestMetaData metaData)> GetGame(GameGetParamsDTO getparamsDTO, bool trackChanges)
         {
-                if (getparamsDTO.PageSize>100) getparamsDTO.PageSize = 100;
-                var CollectionDTOofGames = await uow.GameRepository.GetAllAsync(getparamsDTO);
+            var GamesPagedList = await uow.GameRepository.GetAllAsync(getparamsDTO,trackChanges);
 
-                var CollectionDTOofGamesDTO = mapper.Map<CollectionResponseDTO<GameDTO>>(CollectionDTOofGames);
+            var CollectionDTOofGamesDTO = mapper.Map<IEnumerable<GameDTO>>(GamesPagedList.Items);
 
-                return CollectionDTOofGamesDTO;            
+            return (CollectionDTOofGamesDTO, GamesPagedList.MetaData);            
         }
 
         public async Task<GameDTO> GetGameFromId(int id)
@@ -55,9 +56,7 @@ namespace Tournament.Services
             mapper.Map(gameDTO, game);
             uow.GameRepository.Update(game);
 
-                await uow.PersistAsync();
-
-            return;
+            await uow.PersistAsync();
         }
 
         public async Task<int> PostGame(GameUpdateDTO gameDTO)

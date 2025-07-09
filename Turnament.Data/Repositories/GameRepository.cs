@@ -9,6 +9,7 @@ using Tournament.Core.Entities;
 using Tournament.Core.Repositories;
 using Tournament.Data.Data;
 using System.Linq.Dynamic.Core;
+using Tournament.Core.Request;
 
 namespace Tournament.Data.Repositories
 {
@@ -24,27 +25,19 @@ namespace Tournament.Data.Repositories
             return await context.Game.AnyAsync(g => g.Id == id);
         }
 
-        public async Task<CollectionResponseDTO<Game>> GetAllAsync(GameGetParamsDTO getParams)
+        public async Task<PagedList<Game>> GetAllAsync(GameGetParamsDTO getParams, bool trackChanges = false)
         {
             IQueryable<Game> query = context.Game;
+            
+            if (trackChanges) query.AsNoTracking();
+            
             var TotalItems = query.Count();
+            
             if (getParams.StartTime!= null) query = query.Where(g => g.Time > getParams.StartTime);
             if (getParams.EndTime!= null) query = query.Where(g => g.Time < getParams.EndTime);
             if (getParams.OrderCriteria != null) query = query.OrderBy(getParams.OrderCriteria);
 
-            int TotalPages = (int)Math.Ceiling((double)TotalItems / getParams.PageSize);
-            int skip = (getParams.PageNumber - 1) * getParams.PageSize;
-            query = query.Skip(skip).Take(getParams.PageSize);
-            var items = await query.ToListAsync();
-
-            return new CollectionResponseDTO<Game>()
-            {
-                Items = items,
-                TotalPages = TotalPages,
-                PageSize = items.Count,
-                CurrentPage = getParams.PageNumber,
-                TotalItems = TotalItems
-            };
+            return await PagedList<Game>.CreateAsync(query, getParams.PageNumber, getParams.PageSize);
         }
 
         public async Task<Game> GetAsync(int id)

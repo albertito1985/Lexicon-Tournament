@@ -11,16 +11,17 @@ using System.Threading.Tasks;
 using Tournament.Core.DTOs;
 using Tournament.Core.Entities;
 using Tournament.Core.Repositories;
+using Tournament.Core.Request;
 
 namespace Tournament.Services
 {
     public class TournamentService(IUnitOfWork uow, IMapper mapper) : ControllerBase, ITournamentService
     {
-        public async Task<CollectionResponseDTO<TournamentDetailsDTO>> GetTournamentDetails(TournamentGetParamsDTO getParams)
+        public async Task<(IEnumerable<TournamentDetailsDTO> tournamentDetailsDTOs, RequestMetaData metaData)> GetTournamentDetails(TournamentGetParamsDTO getParams, bool trackChanges)
         {
-            var tournaments = await uow.TournamentRepository.GetAllAsync(getParams);
-            var tournametnsDTOs = mapper.Map<CollectionResponseDTO<TournamentDetailsDTO>>(tournaments);
-            return tournametnsDTOs;
+            var tournamentsPagedList = await uow.TournamentRepository.GetAllAsync(getParams, trackChanges);
+            var tournametnsDTOs = mapper.Map<IEnumerable<TournamentDetailsDTO>>(tournamentsPagedList.Items);
+            return (tournametnsDTOs, tournamentsPagedList.MetaData);
         }
 
         public async Task<TournamentDetailsDTO> GetTournamentDetails(int id)

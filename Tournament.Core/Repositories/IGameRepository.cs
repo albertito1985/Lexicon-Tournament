@@ -5,12 +5,13 @@ using System.Text;
 using System.Threading.Tasks;
 using Tournament.Core.DTOs;
 using Tournament.Core.Entities;
+using Tournament.Core.Request;
 
 namespace Tournament.Core.Repositories
 {
     public interface IGameRepository
     {
-        Task<CollectionResponseDTO<Game>> GetAllAsync(GameGetParamsDTO getParams);
+        Task<PagedList<Game>> GetAllAsync(GameGetParamsDTO getParams, bool trackChanges = false);
         Task<Game> GetAsync(int id);
         Task<Game> GetAsync(string title);
         Task<bool> AnyAsync(int id);
