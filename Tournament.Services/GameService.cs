@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Domain.Models.Exceptions;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -19,7 +20,6 @@ namespace Tournament.Services
 {
     public class GameService(IUnitOfWork uow, IMapper mapper) : ControllerBase, IGameService
     {
-        //TODO: Aquí me quedé
         public async Task<(IEnumerable<GameDTO> gamesDTO, RequestMetaData metaData)> GetGame(GameGetParamsDTO getparamsDTO, bool trackChanges)
         {
             var GamesPagedList = await uow.GameRepository.GetAllAsync(getparamsDTO,trackChanges);
@@ -31,9 +31,7 @@ namespace Tournament.Services
 
         public async Task<GameDTO> GetGameFromId(int id)
         {
-            ArgumentNullException.ThrowIfNull(id);
-
-            var game = await uow.GameRepository.GetAsync(id) ?? throw new ArgumentException($"There is no game with id {id}");
+            var game = await uow.GameRepository.GetAsync(id) ?? throw new GameNotFoundException(id);
 
             var gameDTO = mapper.Map<GameDTO>(game);
             return gameDTO;
@@ -41,18 +39,14 @@ namespace Tournament.Services
 
         public async Task<GameDTO> GetGameFromTitle(string title)
         {
-            ArgumentNullException.ThrowIfNull(title);
-            var game = await uow.GameRepository.GetAsync(title); //?? throw new ArgumentException($"There is no game with title {title}");
+            var game = await uow.GameRepository.GetAsync(title)?? throw new GameTitleNotFoundException(title);
             var gameDTO = mapper.Map<GameDTO>(game);
             return gameDTO;
         }
 
         public async Task PutGame(int id, GameUpdateDTO gameDTO)
         {
-            ArgumentNullException.ThrowIfNull(id);
-            ArgumentNullException.ThrowIfNull(gameDTO);
-
-            var game = await uow.GameRepository.GetAsync(id) ?? throw new ArgumentException($"There is no game with id {id}");
+            var game = await uow.GameRepository.GetAsync(id) ?? throw new GameNotFoundException(id);
             mapper.Map(gameDTO, game);
             uow.GameRepository.Update(game);
 
@@ -61,43 +55,36 @@ namespace Tournament.Services
 
         public async Task<int> PostGame(GameUpdateDTO gameDTO)
         {
-            ArgumentNullException.ThrowIfNull(gameDTO);
-
             if (await uow.GameRepository.GetTournamentsGamesCount(gameDTO.TournamentDetailsId) >= 10)
-                throw new ArgumentException("A tournament cannot have more than 10 games.");
+                throw new GameBadRequestException("A tournament cannot have more than 10 games.");
 
             var game = mapper.Map<Game>(gameDTO);
 
             uow.GameRepository.Add(game);
             await uow.PersistAsync();
 
-            //gameDTO = mapper.Map<GameUpdateDTO>(game);
-
-            //return CreatedAtAction("GetGame", new { id = game.Id }, gameDTO);
             return game.Id;
         }
 
         public async Task DeleteGame(int id)
         {
-            var game = await uow.GameRepository.GetAsync(id) ?? throw new ArgumentException($"There is no game with id {id}");
+            var game = await uow.GameRepository.GetAsync(id) ?? throw new GameNotFoundException(id);
             uow.GameRepository.Remove(game);
             await uow.PersistAsync();
         }
 
         public async Task PatchGame(int id, JsonPatchDocument<GameUpdateDTO> patchDoc)
         {
-            if (patchDoc == null) throw new ArgumentException("There is an error with the changes you want to make");
-
-            var gameToPatch = await uow.GameRepository.GetAsync(id) ?? throw new ArgumentException($"There is no game with id {id}");
+            var gameToPatch = await uow.GameRepository.GetAsync(id) ?? throw new GameNotFoundException(id);
             var dto = mapper.Map<GameUpdateDTO>(gameToPatch);
 
-            //patchDoc.ApplyTo(dto, ModelState);
+            patchDoc.ApplyTo(dto, (Microsoft.AspNetCore.JsonPatch.Adapters.IObjectAdapter)ModelState);//DETHÄR ÄR FEL
 
             TryValidateModel(dto);
 
             if (!ModelState.IsValid)
             {
-                return;
+                throw new GameBadRequestException("There is an error with the new data input.");
             }
 
             mapper.Map(dto, gameToPatch);

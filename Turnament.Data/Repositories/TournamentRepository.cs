@@ -45,7 +45,7 @@ namespace Tournament.Data.Repositories
 
             return await context.TournamentDetails
                 .Include(t => t.Games)
-                .FirstAsync(t => t.Id == id);
+                .FirstOrDefaultAsync(t => t.Id == id);
         }
 
         public void Remove(TournamentDetails tournament)

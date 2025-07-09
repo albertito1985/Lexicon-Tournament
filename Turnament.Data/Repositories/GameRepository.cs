@@ -47,7 +47,7 @@ namespace Tournament.Data.Repositories
 
         public async Task<Game> GetAsync(string title)
         {
-            return await context.Game.FirstAsync(g => g.Title == title);
+            return await context.Game.FirstOrDefaultAsync(g => g.Title == title);
         }
 
         public void Remove(Game game)

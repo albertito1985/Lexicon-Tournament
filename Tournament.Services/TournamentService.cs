@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Domain.Models.Exceptions;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -28,7 +29,7 @@ namespace Tournament.Services
         {
             ArgumentNullException.ThrowIfNull(id);
 
-            var tournamentDetails = await uow.TournamentRepository.GetAsync(id) ?? throw new ArgumentException($"There is no tournament with id {id}");
+            var tournamentDetails = await uow.TournamentRepository.GetAsync(id) ?? throw new TournamentNotFoundException(id);
             var tournamentDetailsDTO = mapper.Map<TournamentDetailsDTO>(tournamentDetails);
 
             return tournamentDetailsDTO;
@@ -90,17 +91,15 @@ namespace Tournament.Services
             var tournamentToPatch = await uow.TournamentRepository.GetAsync(id) ?? throw new ArgumentException($"There is no tournament with id {id}");
             var dto = mapper.Map<TournamentUpdateDTO>(tournamentToPatch);
 
-            //patchDoc.ApplyTo(dto, ModelState);
+            patchDoc.ApplyTo(dto, (Microsoft.AspNetCore.JsonPatch.Adapters.IObjectAdapter)ModelState);
             if (dto.Games.Count>10) throw new ArgumentException("A tournament cannot have more than 10 games.");
 
             TryValidateModel(dto);
 
             if (!ModelState.IsValid)
             {
-                //return UnprocessableEntity(ModelState);
+                throw new DataMisalignedException("There is an error with the new dataInput.");
             }
-
-            //tournamentToPatch = mapper.Map<TournamentDetails>(dto);
             mapper.Map(dto, tournamentToPatch);
             await uow.PersistAsync();
         }
