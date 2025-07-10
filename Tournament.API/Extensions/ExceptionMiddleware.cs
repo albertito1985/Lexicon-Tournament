@@ -61,6 +61,13 @@ namespace Companies.API.Extensions
                 detail: gameBadRequestException.Message,
                 instance: context.Request.Path),
 
+                TournamentBadRequestException tournamentBadRequestException => problemDetailsFactory.CreateProblemDetails(
+                context,
+                StatusCodes.Status400BadRequest,
+                title: tournamentBadRequestException.Title,
+                detail: tournamentBadRequestException.Message,
+                instance: context.Request.Path),
+
                 _ => problemDetailsFactory.CreateProblemDetails(
                     context,
                     StatusCodes.Status500InternalServerError,

@@ -78,9 +78,10 @@ namespace Tournament.Services
             var gameToPatch = await uow.GameRepository.GetAsync(id) ?? throw new GameNotFoundException(id);
             var dto = mapper.Map<GameUpdateDTO>(gameToPatch);
 
-            patchDoc.ApplyTo(dto, (Microsoft.AspNetCore.JsonPatch.Adapters.IObjectAdapter)ModelState);//DETHÄR ÄR FEL
+            patchDoc.ApplyTo(dto);
 
-            TryValidateModel(dto);
+            // TODO: Ask teacher
+            //TryValidateModel(dto);
 
             if (!ModelState.IsValid)
             {
@@ -92,10 +93,10 @@ namespace Tournament.Services
         }
 
         //No calls to GameExists
-        private async Task<bool> GameExists(int id)
-        {
-            return await uow.GameRepository.AnyAsync(id);
-        }
+        //private async Task<bool> GameExists(int id)
+        //{
+        //    return await uow.GameRepository.AnyAsync(id);
+        //}
     }
 
 

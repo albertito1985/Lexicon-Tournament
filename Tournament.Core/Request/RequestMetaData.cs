@@ -13,9 +13,6 @@ namespace Tournament.Core.Request
         public int CurrentPage { get; set; }
         public int TotalItems { get; set; }
 
-        // TODO: Delete later
-        //public IEnumerable<T> Items { get; set; } = new List<T>();
-
         public RequestMetaData(int totalPages, int pageSize, int currentPage, int totalItems)
         {
             TotalPages = totalPages;

@@ -43,14 +43,7 @@ namespace Tournament.Presentation.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> PutTournamentDetails(int id, TournamentUpdateDTO tournamentDTO)
         {
-            try
-            {
-                await serviceManager.TournamentService.PutTournamentDetails(id, tournamentDTO);
-            }
-            catch
-            {
-
-            }
+            await serviceManager.TournamentService.PutTournamentDetails(id, tournamentDTO);
             return NoContent();
         }
 
@@ -81,14 +74,8 @@ namespace Tournament.Presentation.Controllers
         [HttpPatch("{id}")]
         public async Task<ActionResult> PatchTournament(int id, JsonPatchDocument<TournamentUpdateDTO> patchDoc)
         {
-            try
-            {
-                await serviceManager.TournamentService.PatchTournament(id, patchDoc);
-            }
-            catch
-            {
-
-            }
+            await serviceManager.TournamentService.PatchTournament(id, patchDoc);
+           
             return NoContent();
 
         }

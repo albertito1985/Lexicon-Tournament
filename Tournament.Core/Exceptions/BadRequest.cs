@@ -24,4 +24,12 @@ namespace Domain.Models.Exceptions
         }
     }
 
+    public class TournamentBadRequestException : BadRequestException
+    {
+        public TournamentBadRequestException(string message) : base(message)
+        {
+
+        }
+    }
+
 }
