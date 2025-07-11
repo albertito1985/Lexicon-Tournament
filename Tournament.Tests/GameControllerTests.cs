@@ -1,63 +1,130 @@
 using AutoMapper;
 using Azure;
+using Domain.Models.Exceptions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Moq;
+using Service.Contracts;
 using System.Reflection.Metadata;
-using Tournament.API.Controllers;
 using Tournament.Core.DTOs;
 using Tournament.Core.Entities;
 using Tournament.Core.Repositories;
+using Tournament.Core.Request;
 using Tournament.Data.Data;
+using Tournament.Presentation.Controllers;
+using Tournament.Services;
 using Xunit;
 namespace Tournament.Tests
 {
-    public class GameControllerTests()
+    public class GameControllerTests
     {
-        List<Game> games = new()
-        {
-            new Game
-            {
-                Id = 1,
-                Title = "E Star Wars Unlimited: Galactic Showdown",
-                Time = new DateTime(2025, 6, 1, 8, 0, 0),
-                TournamentDetailsId = 101
-            },
-            new Game
-            {
-                Id = 2,
-                Title = "D Star Wars Destiny: Core Worlds Clash",
-                Time = new DateTime(2025, 6, 5, 8, 0, 0),
-                TournamentDetailsId = 102
-            },
-            new Game
-            {
-                Id = 3,
-                Title = "C Star Wars TCG: Jedi Masters League",
-                Time = new DateTime(2025, 6, 12, 8, 0, 0),
-                TournamentDetailsId = 103
-            },
-            new Game
-            {
-                Id = 4,
-                Title = "B Star Wars Unlimited: Outer Rim Brawl",
-                Time = new DateTime(2025, 6, 18, 8, 0, 0),
-                TournamentDetailsId = 104
-            },
-            new Game
-            {
-                Id = 5,
-                Title = "A Star Wars Destiny: Sith Trials",
-                Time = new DateTime(2025, 6, 25, 8, 0, 0),
-                TournamentDetailsId = 105
-            }
-        };
+        private List<Game> games;
+        private IEnumerable<GameDTO> gamesDTOs;
+        private GameUpdateDTO gameUpdateDTO;
+        private PagedList<Game> pagedGames;
+        private IMapper? mapper;
 
-        static TournamentMappings myProfile = new();
-        static MapperConfiguration configuration = new MapperConfiguration(cfg => cfg.AddProfile(myProfile));
-        IMapper _mapper = new Mapper(configuration);
+        //Mock<IGameRepository> mockRepository = new();
+        //Mock<IUnitOfWork> mockUOW = new();
+        Mock<IServiceManager> mockServiceManager = new();
+        Mock<IGameService> mockGameService = new();
+        GamesController gamesController;
+
+        public GameControllerTests()
+        {
+            //Configure Test Data
+            games = new()
+            {
+                new Game
+                {
+                    Id = 1,
+                    Title = "E Star Wars Unlimited: Galactic Showdown",
+                    Time = new DateTime(2025, 6, 1, 8, 0, 0),
+                    TournamentDetailsId = 101
+                },
+                new Game
+                {
+                    Id = 2,
+                    Title = "D Star Wars Destiny: Core Worlds Clash",
+                    Time = new DateTime(2025, 6, 5, 8, 0, 0),
+                    TournamentDetailsId = 102
+                },
+                new Game
+                {
+                    Id = 3,
+                    Title = "C Star Wars TCG: Jedi Masters League",
+                    Time = new DateTime(2025, 6, 12, 8, 0, 0),
+                    TournamentDetailsId = 103
+                },
+                new Game
+                {
+                    Id = 4,
+                    Title = "B Star Wars Unlimited: Outer Rim Brawl",
+                    Time = new DateTime(2025, 6, 18, 8, 0, 0),
+                    TournamentDetailsId = 104
+                },
+                new Game
+                {
+                    Id = 5,
+                    Title = "A Star Wars Destiny: Sith Trials",
+                    Time = new DateTime(2025, 6, 25, 8, 0, 0),
+                    TournamentDetailsId = 105
+                }
+            };
+            gamesDTOs =new List<GameDTO>()
+            {
+                new GameDTO
+                {
+                    Title = "E Star Wars Unlimited: Galactic Showdown",
+                    Time = new DateTime(2025, 6, 1, 8, 0, 0)
+                },
+                new GameDTO
+                {
+                    Title = "D Star Wars Destiny: Core Worlds Clash",
+                    Time = new DateTime(2025, 6, 5, 8, 0, 0)
+                },
+                new GameDTO
+                {
+                    Title = "C Star Wars TCG: Jedi Masters League",
+                    Time = new DateTime(2025, 6, 12, 8, 0, 0)
+                },
+                new GameDTO
+                {
+                    Title = "B Star Wars Unlimited: Outer Rim Brawl",
+                    Time = new DateTime(2025, 6, 18, 8, 0, 0)
+                },
+                new GameDTO
+                {
+                    Title = "A Star Wars Destiny: Sith Trials",
+                    Time = new DateTime(2025, 6, 25, 8, 0, 0)
+                }
+            };
+            gameUpdateDTO = new()
+            {
+                Title = "Replacement title",
+                Time = new DateTime(2025, 7, 1, 8, 0, 0),
+                TournamentDetailsId = 3
+            };
+            pagedGames = new PagedList<Game>(games, 5, 1, 3);
+
+            //Configure Mapper
+            TournamentMappings myProfile = new();
+            MapperConfiguration configuration = new MapperConfiguration(cfg => cfg.AddProfile(myProfile));
+            mapper = new Mapper(configuration);
+
+            //Configure Mocks
+            mockServiceManager.Setup(sm => sm.GameService).Returns(mockGameService.Object);
+
+            var httpContext = new DefaultHttpContext();
+            gamesController = new(mockServiceManager.Object);
+            gamesController.ControllerContext = new ControllerContext
+            {
+                HttpContext = httpContext
+            };
+
+        }
 
         [Theory]
         [InlineData(null, null, null)]
@@ -70,21 +137,18 @@ namespace Tournament.Tests
                 StartTime = startDate!=null ? DateTime.Parse(startDate) : null,
                 EndTime = endDate != null ? DateTime.Parse(endDate) : null
             };
-            Mock<IGameRepository> repository = new Mock<IGameRepository>();
-            Mock<IUnitOfWork> mockUOW = new Mock<IUnitOfWork>();
-            mockUOW.Setup(uow => uow.GameRepository).Returns(repository.Object);
-            repository.Setup(r => r.GetAllAsync(It.IsAny<GameGetParamsDTO>())).ReturnsAsync(games);
 
-            GamesController gamesController = new GamesController(mockUOW.Object, _mapper);
+            mockGameService.Setup(s => s.GetGame(It.IsAny<GameGetParamsDTO>(), false))
+                .Returns(Task.FromResult((gamesDTOs, pagedGames.MetaData)));
 
             var result = await gamesController.GetGame(gameParams);
 
-            mockUOW.Verify(o => o.GameRepository.GetAllAsync(
+            mockGameService.Verify(o => o.GetGame(
                 It.Is<GameGetParamsDTO>(g =>
                 g.OrderCriteria == title &&
                 g.StartTime == (startDate != null ? DateTime.Parse(startDate) : null) &&
                 g.EndTime == (endDate != null ? DateTime.Parse(endDate) : null)
-                    )), Times.Once);
+                    ),false), Times.Once);
             Assert.NotNull(result);
             var okResult = Assert.IsType<OkObjectResult>(result.Result);
             Assert.IsAssignableFrom<IEnumerable<GameDTO>>(okResult.Value);
@@ -95,163 +159,124 @@ namespace Tournament.Tests
         [InlineData(false)]
         public async void GetGameFromId_ReturnsOkResult_WhenGameExists_OrNotFound_WhenMissing(bool validId)
         {
-            Mock<IGameRepository> repository = new Mock<IGameRepository>();
-            Mock<IUnitOfWork> mockUOW = new Mock<IUnitOfWork>();
-            mockUOW.Setup(uow => uow.GameRepository).Returns(repository.Object);
-
-            if(validId) repository.Setup(r => r.GetAsync(It.IsAny<int>())).ReturnsAsync(games[1]);
-            else repository.Setup(r => r.GetAsync(It.IsAny<int>())).ReturnsAsync((Game?)null);
-
-            GamesController gamesController = new GamesController(mockUOW.Object, _mapper);
-            
             int mockId = 1;
 
-            var result = await gamesController.GetGameFromId(mockId);
+            if (validId) mockGameService.Setup(s => s.GetGameFromId(It.IsAny<int>())).Returns(Task.FromResult(gamesDTOs.ElementAt(1)));
+            else mockGameService.Setup(s => s.GetGameFromId(It.IsAny<int>())).ThrowsAsync(new GameNotFoundException(mockId));
 
-            mockUOW.Verify(o => o.GameRepository.GetAsync(
-                It.Is<int>(x => x == mockId)), Times.Once);
+            ActionResult<GameDTO> MethodActionresult;
 
-            if(validId)
-            {
-                Assert.NotNull(result);
-                var okResult = Assert.IsType<OkObjectResult>(result.Result);
-                Assert.IsAssignableFrom<GameDTO>(okResult.Value);
-            }
+            if (validId) MethodActionresult = await gamesController.GetGameFromId(mockId);
             else
             {
-                Assert.IsType<NotFoundResult>(result.Result);
-            }
-        }
-
-        [Theory]
-        [InlineData("E Star Wars Unlimited: Galactic Showdown")]
-        [InlineData("invalidTitle")]
-        public async void GetGameFromTitle_ReturnsOkResult_WhenGameExists_OrNotFound_WhenMissing(string title)
-        {
-            Mock<IGameRepository> repository = new Mock<IGameRepository>();
-            Mock<IUnitOfWork> mockUOW = new Mock<IUnitOfWork>();
-            mockUOW.Setup(uow => uow.GameRepository).Returns(repository.Object);
-
-
-            repository.Setup(r => r.GetAsync(It.Is<string>(x => x != "invalidTitle"))).ReturnsAsync(games[1]);
-            repository.Setup(r => r.GetAsync(It.Is<string>(x => x == "invalidTitle"))).ReturnsAsync((Game?)null);
-
-            GamesController gamesController = new GamesController(mockUOW.Object, _mapper);
-
-            var result = await gamesController.GetGameFromTitle(title);
-
-            mockUOW.Verify(o => o.GameRepository.GetAsync(
-                It.Is<string>(x => x == title)), Times.Once);
-
-            if (title == "E Star Wars Unlimited: Galactic Showdown")
-            {
-                Assert.NotNull(result);
-                var okResult = Assert.IsType<OkObjectResult>(result.Result);
-                Assert.IsAssignableFrom<GameDTO>(okResult.Value);
-            }
-            else
-            {
-                Assert.IsType<NotFoundResult>(result.Result);
-            }
-        }
-
-        [Theory]
-        [InlineData(1, false)]
-        [InlineData(1, true)]
-        [InlineData(6, false)]
-        public async void PutGame_ReturnsExpectedResult_BasedOnGameExistence_AndDbConcurrencyError(int id, bool DBError)
-        {
-            Mock<IGameRepository> repository = new Mock<IGameRepository>();
-            Mock<IUnitOfWork> mockUOW = new Mock<IUnitOfWork>();
-
-            mockUOW.Setup(uow => uow.GameRepository).Returns(repository.Object);
-            mockUOW.Setup(uow => uow.PersistAsync()).Returns(Task.CompletedTask);
-            if (DBError)
-            {
-                mockUOW.Setup(uow => uow.PersistAsync()).ThrowsAsync(new DbUpdateConcurrencyException());
-            }
-            repository.Setup(r => r.GetAsync(It.Is<int>(x => x != 6))).ReturnsAsync(games[1]);
-            repository.Setup(r => r.GetAsync(It.Is<int>(x => x == 6))).ReturnsAsync((Game?)null);
-
-            repository.Setup(r => r.Update(It.IsAny<Game>()));
-
-            GamesController gamesController = new GamesController(mockUOW.Object, _mapper);
-
-            GameUpdateDTO gameDTO = new()
-            {
-                Title = "Updated Game Title",
-                Time = new DateTime(2025, 6, 1, 10, 0, 0)
-            };
-
-            IActionResult? result;
-
-            if (DBError)
-            {
-                await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => gamesController.PutGame(id, gameDTO));
+                await Assert.ThrowsAsync<GameNotFoundException>(() => gamesController.GetGameFromId(mockId));
                 return;
             }
-            else
-            {
-                result = await gamesController.PutGame(id, gameDTO);
-            }
 
-            mockUOW.Verify(o => o.GameRepository.GetAsync(
-                It.Is<int>(x => x == id)), Times.Once);
+            var result = MethodActionresult.Result;
+
+            mockGameService.Verify(o => o.GetGameFromId(
+                It.Is<int>(x => x == mockId)), Times.Once);
             Assert.NotNull(result);
-
-            if (id == 1) // if the game exists on the first call
-            {
-                mockUOW.Verify(o => o.PersistAsync(), Times.Once);
-
-                if (DBError) // if the update is successfull
-                {
-                    var NoContentResult = Assert.IsType<NoContentResult>(result);
-                }
-            }
-            else
-            {
-                Assert.IsType<NotFoundResult>(result);
-            }
+            var okResult = Assert.IsType<OkObjectResult>(result);
+            Assert.IsAssignableFrom<GameDTO>(okResult.Value);
         }
 
         [Theory]
         [InlineData(true)]
         [InlineData(false)]
-        public async void PostGame_ReturnsCreatedAt_WhenDTOIsValid_OrBadRequest_WhenInvalid(bool gameDTOValid)
+        public async void GetGameFromTitle_ReturnsOkResult_WhenGameExists_OrNotFound_WhenMissing(bool validTitle)
         {
-            Mock<IGameRepository> repository = new Mock<IGameRepository>();
-            Mock<IUnitOfWork> mockUOW = new Mock<IUnitOfWork>();
-            mockUOW.Setup(uow => uow.GameRepository).Returns(repository.Object);
-            mockUOW.Setup(uow => uow.PersistAsync()).Returns(Task.CompletedTask);
+            string title = "E Star Wars Unlimited: Galactic Showdown";
 
-            repository.Setup(r => r.Add(It.IsAny<Game>()));
-          
-            GamesController gamesController = new GamesController(mockUOW.Object, _mapper);
+            if(validTitle) mockGameService.Setup(s => s.GetGameFromTitle(It.IsAny<string>())).Returns(Task.FromResult(gamesDTOs.ElementAt(1)));
+            else mockGameService.Setup(s => s.GetGameFromTitle(It.IsAny<string>())).ThrowsAsync(new GameTitleNotFoundException(title));
 
-            GameUpdateDTO? gameDTO = null;
+            ActionResult<GameDTO> MethodActionresult;
 
-            if(gameDTOValid)
+            if (validTitle) MethodActionresult = await gamesController.GetGameFromTitle(title);
+            else
             {
-                gameDTO = new GameUpdateDTO
-                {
-                    Title = "New Game Title",
-                    Time = new DateTime(2025, 6, 1, 10, 0, 0),
-                    TournamentDetailsId = 1
-                };
+                await Assert.ThrowsAsync<GameTitleNotFoundException>(() => gamesController.GetGameFromTitle(title));
+                return;
             }
 
-            var result = await gamesController.PostGame(gameDTO);
+            var result = MethodActionresult.Result;
 
-            if (gameDTOValid)
+            mockGameService.Verify(s => s.GetGameFromTitle(
+                It.Is<string>(x => x == title)), Times.Once);
+            Assert.NotNull(result);
+            var okResult = Assert.IsType<OkObjectResult>(result);
+            Assert.IsAssignableFrom<GameDTO>(okResult.Value);
+
+        }
+
+        [Theory]
+        [InlineData(true, false)]
+        [InlineData(true, true)]
+        [InlineData(false, false)]
+        public async void PutGame_ReturnsExpectedResult_BasedOnGameExistence_AndDbConcurrencyError(bool gameExist, bool dBError)
+        {
+            int mockId = 1;
+
+            if(!gameExist) mockGameService.Setup(s => s.PutGame(It.IsAny<int>(), It.IsAny<GameUpdateDTO>())).ThrowsAsync(new GameNotFoundException(mockId));
+            else if (dBError) mockGameService.Setup(s => s.PutGame(It.IsAny<int>(), It.IsAny<GameUpdateDTO>())).ThrowsAsync(new DbUpdateConcurrencyException());
+
+            if(!gameExist)
             {
-                mockUOW.Verify(uow => uow.GameRepository.Add(
-                It.Is<Game>(x =>
-                x.Title == gameDTO.Title &&
-                x.Time == gameDTO.Time &&
-                x.TournamentDetailsId == gameDTO.TournamentDetailsId
-                )), Times.Once);
+                await Assert.ThrowsAsync<GameNotFoundException>(() => gamesController.PutGame(mockId, gameUpdateDTO));
+                return;
+            }
+            else if (dBError)
+            {
+                await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => gamesController.PutGame(mockId, gameUpdateDTO));
+                return;
+            }
 
-                mockUOW.Verify(o => o.PersistAsync(), Times.Once);
+            var result = await gamesController.PutGame(mockId, gameUpdateDTO);
+
+            mockGameService.Verify(s => s.PutGame(
+                It.Is<int>(x => x == mockId),
+                It.Is<GameUpdateDTO>(gud => 
+                gud.Title == gameUpdateDTO.Title &&
+                gud.Time == gameUpdateDTO.Time &&
+                gud.TournamentDetailsId == gameUpdateDTO.TournamentDetailsId))
+            , Times.Once);
+            Assert.NotNull(result);
+            Assert.IsType<NoContentResult>(result);
+
+        }
+
+        [Theory]
+        [InlineData(true, true)]
+        [InlineData(true, false)]
+        [InlineData(false,false)]
+        public async void PostGame_ReturnsCreatedAt_WhenDTOIsValid_OrBadRequest_WhenInvalid(bool gameDTOValid, bool DBfail)
+        {
+
+            if(!gameDTOValid) mockGameService.Setup(s => s.PostGame(It.IsAny<GameUpdateDTO>())).ThrowsAsync(new GameBadRequestException("A tournament cannot have more than 10 games."));
+            else if (DBfail) mockGameService.Setup(s => s.PostGame(It.IsAny<GameUpdateDTO>())).ThrowsAsync(new DbUpdateException());
+            else mockGameService.Setup(s => s.PostGame(It.IsAny<GameUpdateDTO>())).ReturnsAsync(1);
+
+            if (!gameDTOValid)
+            {
+                await Assert.ThrowsAsync<GameBadRequestException>(() => gamesController.PostGame(gameUpdateDTO));
+                return;
+            }
+            
+            if (DBfail)
+            {
+                await Assert.ThrowsAsync<DbUpdateException>(() => gamesController.PostGame(gameUpdateDTO));
+                return;
+            }
+                var result = await gamesController.PostGame(gameUpdateDTO);
+
+                mockGameService.Verify(s => s.PostGame(
+                It.Is<GameUpdateDTO>(gud =>
+                gud.Title == gameUpdateDTO.Title &&
+                gud.Time == gameUpdateDTO.Time &&
+                gud.TournamentDetailsId == gameUpdateDTO.TournamentDetailsId
+                )), Times.Once);
 
                 Assert.NotNull(result);
 
@@ -259,136 +284,76 @@ namespace Tournament.Tests
                 Assert.Equal("GetGame", createdAtActionResult.ActionName);
 
                 var returnedDto = Assert.IsType<GameUpdateDTO>(createdAtActionResult.Value);
-                Assert.Equal(gameDTO.Title, returnedDto.Title);
-                Assert.Equal(gameDTO.Time, returnedDto.Time);
-                Assert.Equal(gameDTO.TournamentDetailsId, returnedDto.TournamentDetailsId);
-            }
-            else
-            {
-                Assert.IsType<BadRequestObjectResult>(result.Result);
-            }
+                Assert.Equal(gameUpdateDTO.Title, returnedDto.Title);
+                Assert.Equal(gameUpdateDTO.Time, returnedDto.Time);
+                Assert.Equal(gameUpdateDTO.TournamentDetailsId, returnedDto.TournamentDetailsId);
         }
 
         [Theory]
-        [InlineData(true)]
-        [InlineData(false)]
-        public async void DeleteGame_ReturnsExpectedResult_BasedOnGameExistence(bool validId)
+        [InlineData(true, true)]
+        [InlineData(true, false)]
+        [InlineData(false, true)]
+        public async void DeleteGame_ReturnsExpectedResult_BasedOnGameExistence(bool validId, bool DBfail)
         {
-            Mock<IGameRepository> repository = new Mock<IGameRepository>();
-            Mock<IUnitOfWork> mockUOW = new Mock<IUnitOfWork>();
-            mockUOW.Setup(uow => uow.GameRepository).Returns(repository.Object);
-            mockUOW.Setup(uow => uow.PersistAsync()).Returns(Task.CompletedTask);
-
-            repository.Setup(r => r.Remove(It.IsAny<Game>()));
             int mockId = 1;
-            if (validId) repository.Setup(r => r.GetAsync(It.IsAny<int>())).ReturnsAsync(games[mockId]);
-            else repository.Setup(r => r.GetAsync(It.IsAny<int>())).ReturnsAsync((Game?)null);
-
-            GamesController gamesController = new(mockUOW.Object, _mapper);
-            
-            var result = await gamesController.DeleteGame(mockId);
-
-            mockUOW.Verify(o => o.GameRepository.GetAsync(
-                It.Is<int>(x => x == mockId)), Times.Once);
-            Assert.NotNull(result);
+            if (validId) mockGameService.Setup(s => s.DeleteGame(mockId)).ThrowsAsync(new GameNotFoundException(mockId));
+            else if(DBfail) mockGameService.Setup(s => s.DeleteGame(mockId)).ThrowsAsync(new DbUpdateException());
+            else mockGameService.Setup(s => s.DeleteGame(mockId)).Returns(Task.CompletedTask);
 
             if (validId)
-            {
-                mockUOW.Verify(uow => uow.GameRepository.Remove(
-                It.Is<Game>(x =>
-                x.Title == games[mockId].Title &&
-                x.Time == games[mockId].Time &&
-                x.TournamentDetailsId == games[mockId].TournamentDetailsId
-                )), Times.Once);
-
-                mockUOW.Verify(uow => uow.PersistAsync(), Times.Once);
-
-                Assert.IsType<NoContentResult>(result);
+            { 
+                Assert.ThrowsAsync<GameNotFoundException>(() => gamesController.DeleteGame(mockId));
+                return;
             }
-            else
-            {
-                Assert.IsType<NotFoundResult>(result);
+            if (DBfail)
+            { 
+                Assert.ThrowsAsync<DbUpdateException>(() => gamesController.DeleteGame(mockId));
+                return;
             }
 
+            var result = await gamesController.DeleteGame(mockId);
+
+            mockGameService.Verify(s => s.DeleteGame(
+                It.Is<int>(x => x == mockId)), Times.Once);
+            Assert.NotNull(result);
+            Assert.IsType<NoContentResult>(result);
         }
 
 
         [Theory]
-        [InlineData(true, true, true)]
-        [InlineData(false, true, true)]
-        [InlineData(true, false, true)]
-        [InlineData(false, false, true)]
-        [InlineData(true, true, false)]
-        [InlineData(false, true, false)]
-        [InlineData(true, false, false)]
-        [InlineData(false, false, false)]
-        public async void PatchGame_ReturnsCorrectResult_BasedOnPatchValidity_GameExistence_AndModelState(bool patchIsValid, bool gameIsValid, bool validDTOModel)
+        [InlineData(true, true)]
+        [InlineData(false, true)]
+        [InlineData(true, false)]
+        [InlineData(false, false)]
+        public async void PatchGame_ReturnsCorrectResult_BasedOnPatchValidity_GameExistence_AndModelState(bool DBfail, bool gameIsValid)
         {
-            Mock<IGameRepository> repository = new Mock<IGameRepository>();
-            Mock<IUnitOfWork> mockUOW = new Mock<IUnitOfWork>();
-            mockUOW.Setup(uow => uow.GameRepository).Returns(repository.Object);
-            mockUOW.Setup(uow => uow.PersistAsync()).Returns(Task.CompletedTask);
+            int mockId = 1;
 
-            //var patchDoc = new JsonPatchDocument<GameUpdateDTO>();
-            JsonPatchDocument<GameUpdateDTO> patchDoc;
+            if (!gameIsValid) mockGameService.Setup(s => s.PatchGame(It.IsAny<int>(), It.IsAny<JsonPatchDocument<GameUpdateDTO>>())).ThrowsAsync(new GameNotFoundException(1));
+            else if (DBfail) mockGameService.Setup(s => s.PatchGame(It.IsAny<int>(), It.IsAny<JsonPatchDocument<GameUpdateDTO>>())).ThrowsAsync(new DbUpdateException());
+            else mockGameService.Setup(s => s.PatchGame(It.IsAny<int>(), It.IsAny<JsonPatchDocument<GameUpdateDTO>>())).Returns(Task.CompletedTask);
+            
+            JsonPatchDocument<GameUpdateDTO> patchDoc = new JsonPatchDocument<GameUpdateDTO>();
+            patchDoc.Replace(g => g.Title, "Patched Game");
 
-            switch(patchIsValid,validDTOModel)
+            if(!gameIsValid)
             {
-
-                case (true,false):
-                    patchDoc = new JsonPatchDocument<GameUpdateDTO>();
-                    patchDoc.Replace(g => g.Title, null);
-                    break;
-                case (true,true):
-                    patchDoc = new JsonPatchDocument<GameUpdateDTO>();
-                    patchDoc.Replace(g => g.Title, "Patched Game");
-                    break;
-                case (false,true):
-                case (false,false):
-                    patchDoc = null;
-                    break;
-                default:
-                    break;
+                await Assert.ThrowsAsync<GameNotFoundException>(() => gamesController.PatchGame(mockId, patchDoc));
+                return;
             }
 
-            int mockId = 1;
-            if (gameIsValid) repository.Setup(r => r.GetAsync(It.IsAny<int>())).ReturnsAsync(games[mockId]);
-            else repository.Setup(r => r.GetAsync(It.IsAny<int>())).ReturnsAsync((Game?)null);
-
-            GamesController gamesController = new(mockUOW.Object, _mapper);
-            gamesController.ControllerContext = new ControllerContext
+            if (DBfail)
             {
-                HttpContext = new DefaultHttpContext()
-            };
-            gamesController.ObjectValidator = new FakeObjectModelValidator();
+                await Assert.ThrowsAsync<DbUpdateException>(() => gamesController.PatchGame(mockId, patchDoc));
+                return;
+            }
 
             var result = await gamesController.PatchGame(mockId, patchDoc);
 
             Assert.NotNull(result);
-            
 
-            if (!patchIsValid)
-            {
-                Assert.IsType<BadRequestObjectResult>(result);
-                return;
-            }
-
-            mockUOW.Verify(o => o.GameRepository.GetAsync(
-                It.Is<int>(x => x == mockId)), Times.Once);
-
-            if (!gameIsValid)
-            {
-                Assert.IsType<NotFoundObjectResult>(result);
-                return;
-            }
-
-            if (!validDTOModel)
-            {
-                Assert.IsType<UnprocessableEntityObjectResult>(result);
-                return;
-            }
-
-            mockUOW.Verify(uow => uow.PersistAsync(), Times.Once);
+            mockGameService.Verify(o => o.PatchGame(
+                It.Is<int>(x => x == mockId), It.Is<JsonPatchDocument<GameUpdateDTO>>(x => x == patchDoc)), Times.Once);
             Assert.IsType<NoContentResult>(result);
         }
     }

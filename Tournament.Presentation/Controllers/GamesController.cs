@@ -33,7 +33,7 @@ namespace Tournament.Presentation.Controllers
 
         // GET: api/Games/5
         [HttpGet("{title}")]
-        public async Task<ActionResult<Game>> GetGameFromTitle(string title)
+        public async Task<ActionResult<GameDTO>> GetGameFromTitle(string title)
         {
             return Ok(await serviceManager.GameService.GetGameFromTitle(title));
         }
