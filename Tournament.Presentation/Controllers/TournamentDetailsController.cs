@@ -60,14 +60,8 @@ namespace Tournament.Presentation.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteTournamentDetails(int id)
         {
-            try
-            {
-                await serviceManager.TournamentService.DeleteTournamentDetails(id);
-            }
-            catch
-            {
-
-            }
+            await serviceManager.TournamentService.DeleteTournamentDetails(id);
+           
             return NoContent();
         }
 

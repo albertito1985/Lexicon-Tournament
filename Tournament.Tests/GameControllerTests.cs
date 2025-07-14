@@ -26,8 +26,6 @@ namespace Tournament.Tests
         private PagedList<Game> pagedGames;
         private IMapper? mapper;
 
-        //Mock<IGameRepository> mockRepository = new();
-        //Mock<IUnitOfWork> mockUOW = new();
         Mock<IServiceManager> mockServiceManager = new();
         Mock<IGameService> mockGameService = new();
         GamesController gamesController;

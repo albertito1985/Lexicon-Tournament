@@ -13,13 +13,15 @@ namespace Tournament.Tests
     {
         public void Validate(ActionContext actionContext, ValidationStateDictionary validationState, string prefix, object model)
         {
-            var dto = model as GameUpdateDTO;
+            //Används inte
 
-            // Simulate failure when Title is null or empty
-            if (string.IsNullOrEmpty(dto?.Title))
-            {
-                actionContext.ModelState.AddModelError("Title", "Title is required.");
-            }
+            //var dto = model as GameUpdateDTO;
+
+            //// Simulate failure when Title is null or empty
+            //if (string.IsNullOrEmpty(dto?.Title))
+            //{
+            //    actionContext.ModelState.AddModelError("Title", "Title is required.");
+            //}
         }
     }
 }

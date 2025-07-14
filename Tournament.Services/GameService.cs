@@ -80,9 +80,6 @@ namespace Tournament.Services
 
             patchDoc.ApplyTo(dto);
 
-            // TODO: Ask teacher
-            //TryValidateModel(dto);
-
             if (!ModelState.IsValid)
             {
                 throw new GameBadRequestException("There is an error with the new data input.");
